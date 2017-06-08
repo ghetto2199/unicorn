@@ -171,7 +171,7 @@ static int x86_msr_read(struct uc_struct *uc, uc_x86_msr *msr)
     helper_rdmsr(env);
 
     msr->value = ((uint32_t)env->regs[R_EAX]) |
-    	((uint64_t)((uint32_t)env->regs[R_EDX]) << 32);
+        ((uint64_t)((uint32_t)env->regs[R_EDX]) << 32);
 
     env->regs[R_EAX] = eax;
     env->regs[R_ECX] = ecx;
@@ -214,10 +214,17 @@ int x86_reg_read(struct uc_struct *uc, unsigned int *regs, void **vals, int coun
         switch(regid) {
             default:
                 break;
-            case UC_X86_REG_FP0 ... UC_X86_REG_FP7:
+            case UC_X86_REG_FP0:
+            case UC_X86_REG_FP1:
+            case UC_X86_REG_FP2:
+            case UC_X86_REG_FP3:
+            case UC_X86_REG_FP4:
+            case UC_X86_REG_FP5:
+            case UC_X86_REG_FP6:
+            case UC_X86_REG_FP7:
                 {
                     floatx80 reg = X86_CPU(uc, mycpu)->env.fpregs[regid - UC_X86_REG_FP0].d;
-                    cpu_get_fp80(value, value+sizeof(uint64_t), reg);
+                    cpu_get_fp80(value, (uint16_t*)((char*)value+sizeof(uint64_t)), reg);
                 }
                 continue;
             case UC_X86_REG_FPSW:
@@ -261,12 +268,37 @@ int x86_reg_read(struct uc_struct *uc, unsigned int *regs, void **vals, int coun
                     *(uint16_t*) value = fptag; 
                 }
                 continue;
-            case UC_X86_REG_XMM0 ... UC_X86_REG_XMM7:
+            case UC_X86_REG_XMM0:
+            case UC_X86_REG_XMM1:
+            case UC_X86_REG_XMM2:
+            case UC_X86_REG_XMM3:
+            case UC_X86_REG_XMM4:
+            case UC_X86_REG_XMM5:
+            case UC_X86_REG_XMM6:
+            case UC_X86_REG_XMM7:
                 {
                     float64 *dst = (float64*)value;
                     XMMReg *reg = &X86_CPU(uc, mycpu)->env.xmm_regs[regid - UC_X86_REG_XMM0];
                     dst[0] = reg->_d[0];
                     dst[1] = reg->_d[1];
+                    continue;
+                }
+            case UC_X86_REG_YMM0:
+            case UC_X86_REG_YMM1:
+            case UC_X86_REG_YMM2:
+            case UC_X86_REG_YMM3:
+            case UC_X86_REG_YMM4:
+            case UC_X86_REG_YMM5:
+            case UC_X86_REG_YMM6:
+            case UC_X86_REG_YMM7:
+                {
+                    float64 *dst = (float64*)value;
+                    XMMReg *lo_reg = &X86_CPU(uc, mycpu)->env.xmm_regs[regid - UC_X86_REG_YMM0];
+                    XMMReg *hi_reg = &X86_CPU(uc, mycpu)->env.ymmh_regs[regid - UC_X86_REG_YMM0];
+                    dst[0] = lo_reg->_d[0];
+                    dst[1] = lo_reg->_d[1];
+                    dst[2] = hi_reg->_d[0];
+                    dst[3] = hi_reg->_d[1];
                     continue;
                 }
         }
@@ -298,10 +330,21 @@ int x86_reg_read(struct uc_struct *uc, unsigned int *regs, void **vals, int coun
                 switch(regid) {
                     default:
                         break;
-                    case UC_X86_REG_CR0 ... UC_X86_REG_CR4:
+                    case UC_X86_REG_CR0:
+                    case UC_X86_REG_CR1:
+                    case UC_X86_REG_CR2:
+                    case UC_X86_REG_CR3:
+                    case UC_X86_REG_CR4:
                         *(int32_t *)value = X86_CPU(uc, mycpu)->env.cr[regid - UC_X86_REG_CR0];
                         break;
-                    case UC_X86_REG_DR0 ... UC_X86_REG_DR7:
+                    case UC_X86_REG_DR0:
+                    case UC_X86_REG_DR1:
+                    case UC_X86_REG_DR2:
+                    case UC_X86_REG_DR3:
+                    case UC_X86_REG_DR4:
+                    case UC_X86_REG_DR5:
+                    case UC_X86_REG_DR6:
+                    case UC_X86_REG_DR7:
                         *(int32_t *)value = X86_CPU(uc, mycpu)->env.dr[regid - UC_X86_REG_DR0];
                         break;
                     case UC_X86_REG_EFLAGS:
@@ -434,10 +477,21 @@ int x86_reg_read(struct uc_struct *uc, unsigned int *regs, void **vals, int coun
                 switch(regid) {
                     default:
                         break;
-                    case UC_X86_REG_CR0 ... UC_X86_REG_CR4:
+                    case UC_X86_REG_CR0:
+                    case UC_X86_REG_CR1:
+                    case UC_X86_REG_CR2:
+                    case UC_X86_REG_CR3:
+                    case UC_X86_REG_CR4:
                         *(int64_t *)value = X86_CPU(uc, mycpu)->env.cr[regid - UC_X86_REG_CR0];
                         break;
-                    case UC_X86_REG_DR0 ... UC_X86_REG_DR7:
+                    case UC_X86_REG_DR0:
+                    case UC_X86_REG_DR1:
+                    case UC_X86_REG_DR2:
+                    case UC_X86_REG_DR3:
+                    case UC_X86_REG_DR4:
+                    case UC_X86_REG_DR5:
+                    case UC_X86_REG_DR6:
+                    case UC_X86_REG_DR7:
                         *(int64_t *)value = X86_CPU(uc, mycpu)->env.dr[regid - UC_X86_REG_DR0];
                         break;
                     case UC_X86_REG_EFLAGS:
@@ -717,10 +771,17 @@ int x86_reg_write(struct uc_struct *uc, unsigned int *regs, void *const *vals, i
         switch(regid) {
             default:
                 break;
-            case UC_X86_REG_FP0 ... UC_X86_REG_FP7:
+            case UC_X86_REG_FP0:
+            case UC_X86_REG_FP1:
+            case UC_X86_REG_FP2:
+            case UC_X86_REG_FP3:
+            case UC_X86_REG_FP4:
+            case UC_X86_REG_FP5:
+            case UC_X86_REG_FP6:
+            case UC_X86_REG_FP7:
                 {
                     uint64_t mant = *(uint64_t*) value;
-                    uint16_t upper = *(uint16_t*) (value + sizeof(uint64_t));
+                    uint16_t upper = *(uint16_t*) ((char*)value + sizeof(uint64_t));
                     X86_CPU(uc, mycpu)->env.fpregs[regid - UC_X86_REG_FP0].d = cpu_set_fp80(mant, upper);
                 }
                 continue;
@@ -746,12 +807,37 @@ int x86_reg_write(struct uc_struct *uc, unsigned int *regs, void *const *vals, i
                     continue;
                 }
                 break;
-            case UC_X86_REG_XMM0 ... UC_X86_REG_XMM7:
+            case UC_X86_REG_XMM0:
+            case UC_X86_REG_XMM1:
+            case UC_X86_REG_XMM2:
+            case UC_X86_REG_XMM3:
+            case UC_X86_REG_XMM4:
+            case UC_X86_REG_XMM5:
+            case UC_X86_REG_XMM6:
+            case UC_X86_REG_XMM7:
                 {
                     float64 *src = (float64*)value;
                     XMMReg *reg = &X86_CPU(uc, mycpu)->env.xmm_regs[regid - UC_X86_REG_XMM0];
                     reg->_d[0] = src[0];
                     reg->_d[1] = src[1];
+                    continue;
+                }
+            case UC_X86_REG_YMM0:
+            case UC_X86_REG_YMM1:
+            case UC_X86_REG_YMM2:
+            case UC_X86_REG_YMM3:
+            case UC_X86_REG_YMM4:
+            case UC_X86_REG_YMM5:
+            case UC_X86_REG_YMM6:
+            case UC_X86_REG_YMM7:
+                {
+                    float64 *src = (float64*)value;
+                    XMMReg *lo_reg = &X86_CPU(uc, mycpu)->env.xmm_regs[regid - UC_X86_REG_YMM0];
+                    XMMReg *hi_reg = &X86_CPU(uc, mycpu)->env.ymmh_regs[regid - UC_X86_REG_YMM0];
+                    lo_reg->_d[0] = src[0];
+                    lo_reg->_d[1] = src[1];
+                    hi_reg->_d[0] = src[2];
+                    hi_reg->_d[1] = src[3];
                     continue;
                 }
         }
@@ -784,10 +870,21 @@ int x86_reg_write(struct uc_struct *uc, unsigned int *regs, void *const *vals, i
                 switch(regid) {
                     default:
                         break;
-                    case UC_X86_REG_CR0 ... UC_X86_REG_CR4:
+                    case UC_X86_REG_CR0:
+                    case UC_X86_REG_CR1:
+                    case UC_X86_REG_CR2:
+                    case UC_X86_REG_CR3:
+                    case UC_X86_REG_CR4:
                         X86_CPU(uc, mycpu)->env.cr[regid - UC_X86_REG_CR0] = *(uint32_t *)value;
                         break;
-                    case UC_X86_REG_DR0 ... UC_X86_REG_DR7:
+                    case UC_X86_REG_DR0:
+                    case UC_X86_REG_DR1:
+                    case UC_X86_REG_DR2:
+                    case UC_X86_REG_DR3:
+                    case UC_X86_REG_DR4:
+                    case UC_X86_REG_DR5:
+                    case UC_X86_REG_DR6:
+                    case UC_X86_REG_DR7:
                         X86_CPU(uc, mycpu)->env.dr[regid - UC_X86_REG_DR0] = *(uint32_t *)value;
                         break;
                     case UC_X86_REG_EFLAGS:
@@ -927,10 +1024,21 @@ int x86_reg_write(struct uc_struct *uc, unsigned int *regs, void *const *vals, i
                 switch(regid) {
                     default:
                         break;
-                    case UC_X86_REG_CR0 ... UC_X86_REG_CR4:
+                    case UC_X86_REG_CR0:
+                    case UC_X86_REG_CR1:
+                    case UC_X86_REG_CR2:
+                    case UC_X86_REG_CR3:
+                    case UC_X86_REG_CR4:
                         X86_CPU(uc, mycpu)->env.cr[regid - UC_X86_REG_CR0] = *(uint64_t *)value;
                         break;
-                    case UC_X86_REG_DR0 ... UC_X86_REG_DR7:
+                    case UC_X86_REG_DR0:
+                    case UC_X86_REG_DR1:
+                    case UC_X86_REG_DR2:
+                    case UC_X86_REG_DR3:
+                    case UC_X86_REG_DR4:
+                    case UC_X86_REG_DR5:
+                    case UC_X86_REG_DR6:
+                    case UC_X86_REG_DR7:
                         X86_CPU(uc, mycpu)->env.dr[regid - UC_X86_REG_DR0] = *(uint64_t *)value;
                         break;
                     case UC_X86_REG_EFLAGS:
@@ -1209,7 +1317,7 @@ int x86_reg_write(struct uc_struct *uc, unsigned int *regs, void *const *vals, i
     return 0;
 }
 
-__attribute__ ((visibility ("default")))
+DEFAULT_VISIBILITY
 int x86_uc_machine_init(struct uc_struct *uc)
 {
     return machine_initialize(uc);
@@ -1227,7 +1335,18 @@ static bool x86_stop_interrupt(int intno)
 
 void pc_machine_init(struct uc_struct *uc);
 
-__attribute__ ((visibility ("default")))
+static bool x86_insn_hook_validate(uint32_t insn_enum)
+{
+    //for x86 we can only hook IN, OUT, and SYSCALL
+    if (insn_enum != UC_X86_INS_IN
+        &&  insn_enum != UC_X86_INS_OUT
+        &&  insn_enum != UC_X86_INS_SYSCALL) {
+        return false;
+    }
+    return true;
+}
+
+DEFAULT_VISIBILITY
 void x86_uc_init(struct uc_struct* uc)
 {
     apic_register_types(uc);
@@ -1242,6 +1361,7 @@ void x86_uc_init(struct uc_struct* uc)
     uc->release = x86_release;
     uc->set_pc = x86_set_pc;
     uc->stop_interrupt = x86_stop_interrupt;
+    uc->insn_hook_validate = x86_insn_hook_validate;
     uc_common_init(uc);
 }
 

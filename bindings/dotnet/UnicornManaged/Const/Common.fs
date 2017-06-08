@@ -12,8 +12,7 @@ module Common =
     let UC_VERSION_MAJOR = 1
 
     let UC_VERSION_MINOR = 0
-
-    let UC_VERSION_EXTRA = 0
+    let UC_VERSION_EXTRA = 2
     let UC_SECOND_SCALE = 1000000
     let UC_MILISECOND_SCALE = 1000
     let UC_ARCH_ARM = 1
@@ -102,6 +101,7 @@ module Common =
     let UC_HOOK_MEM_VALID = 7168
     let UC_QUERY_MODE = 1
     let UC_QUERY_PAGE_SIZE = 2
+    let UC_QUERY_ARCH = 3
 
     let UC_PROT_NONE = 0
     let UC_PROT_READ = 1

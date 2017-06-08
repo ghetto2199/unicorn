@@ -4,7 +4,7 @@
 #ifndef UC_PRIV_H
 #define UC_PRIV_H
 
-#include <stdint.h>
+#include "unicorn/platform.h"
 #include <stdio.h>
 
 #include "qemu.h"
@@ -60,8 +60,6 @@ typedef int (*uc_args_int_uc_t)(struct uc_struct*);
 
 typedef bool (*uc_args_tcg_enable_t)(struct uc_struct*);
 
-typedef void (*uc_minit_t)(struct uc_struct*, ram_addr_t);
-
 typedef void (*uc_args_uc_long_t)(struct uc_struct*, unsigned long);
 
 typedef void (*uc_args_uc_u64_t)(struct uc_struct *, uint64_t addr);
@@ -79,6 +77,9 @@ typedef bool (*uc_args_int_t)(int intno);
 
 // some architecture redirect virtual memory to physical memory like Mips
 typedef uint64_t (*uc_mem_redirect_t)(uint64_t address);
+
+// validate if Unicorn supports hooking a given instruction
+typedef bool(*uc_insn_hook_validate)(uint32_t insn_enum);
 
 struct hook {
     int type;            // UC_HOOK_*
@@ -110,9 +111,11 @@ enum uc_hook_idx {
     UC_HOOK_MAX,
 };
 
+#define HOOK_FOREACH_VAR_DECLARE                          \
+    struct list_item *cur
+
 // for loop macro to loop over hook lists
 #define HOOK_FOREACH(uc, hh, idx)                         \
-    struct list_item *cur;                                \
     for (                                                 \
         cur = (uc)->hook[idx##_IDX].head;                 \
         cur != NULL && ((hh) = (struct hook *)cur->data)  \
@@ -168,6 +171,8 @@ struct uc_struct {
     uc_mem_redirect_t mem_redirect;
     // TODO: remove current_cpu, as it's a flag for something else ("cpu running"?)
     CPUState *cpu, *current_cpu;
+
+    uc_insn_hook_validate insn_hook_validate;
 
     MemoryRegion *system_memory;    // qemu/exec.c
     MemoryRegion io_mem_rom;    // qemu/exec.c

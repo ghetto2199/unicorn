@@ -1,30 +1,10 @@
 /* Unicorn Emulator Engine */
 /* By zhangwm, 2017 */
 
-/* Sample code to demonstrate how to emulate ARM code */
+/* Sample code to demonstrate how to emulate ARM Big Endian code */
 
-// windows specific
-#ifdef _MSC_VER
-#include <io.h>
-#include <windows.h>
-#define PRIx64 "llX"
-#ifdef DYNLOAD
-#include "unicorn_dynload.h"
-#else // DYNLOAD
 #include <unicorn/unicorn.h>
-#ifdef _WIN64
-#pragma comment(lib, "unicorn_staload64.lib")
-#else // _WIN64
-#pragma comment(lib, "unicorn_staload.lib")
-#endif // _WIN64
-#endif // DYNLOAD
-
-// posix specific
-#else // _MSC_VER
-#include <unistd.h>
-#include <inttypes.h>
-#include <unicorn/unicorn.h>
-#endif // _MSC_VER
+#include <string.h>
 
 
 // code to be emulated
@@ -55,7 +35,7 @@ static void test_arm(void)
     int r3 = 0x3333;     // R2 register
     int r1;     // R1 register
 
-    printf("Emulate ARM code\n");
+    printf("Emulate ARM Big-Endian code\n");
 
     // Initialize emulator in ARM mode
     err = uc_open(UC_ARCH_ARM, UC_MODE_ARM + UC_MODE_BIG_ENDIAN, &uc);

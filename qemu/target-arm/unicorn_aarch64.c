@@ -21,11 +21,13 @@ void arm64_release(void* ctx);
 
 void arm64_release(void* ctx)
 {
+    struct uc_struct* uc;
+    ARMCPU* cpu;
     TCGContext *s = (TCGContext *) ctx;
 
     g_free(s->tb_ctx.tbs);
-    struct uc_struct* uc = s->uc;
-    ARMCPU* cpu = (ARMCPU*) uc->cpu;
+    uc = s->uc;
+    cpu = (ARMCPU*) uc->cpu;
     g_free(cpu->cpreg_indexes);
     g_free(cpu->cpreg_values);
     g_free(cpu->cpreg_vmstate_indexes);
@@ -74,18 +76,33 @@ int arm64_reg_read(struct uc_struct *uc, unsigned int *regs, void **vals, int co
         } else {
             switch(regid) {
                 default: break;
+                case UC_ARM64_REG_CPACR_EL1:
+                    *(uint32_t *)value = ARM_CPU(uc, mycpu)->env.cp15.c1_coproc;
+                    break;
+                case UC_ARM64_REG_TPIDR_EL0:
+                    *(int64_t *)value = ARM_CPU(uc, mycpu)->env.cp15.tpidr_el0;
+                    break;
+                case UC_ARM64_REG_TPIDRRO_EL0:
+                    *(int64_t *)value = ARM_CPU(uc, mycpu)->env.cp15.tpidrro_el0;
+                    break;
+                case UC_ARM64_REG_TPIDR_EL1:
+                    *(int64_t *)value = ARM_CPU(uc, mycpu)->env.cp15.tpidr_el1;
+                    break;
                 case UC_ARM64_REG_X29:
-                         *(int64_t *)value = ARM_CPU(uc, mycpu)->env.xregs[29];
-                         break;
+                    *(int64_t *)value = ARM_CPU(uc, mycpu)->env.xregs[29];
+                    break;
                 case UC_ARM64_REG_X30:
-                         *(int64_t *)value = ARM_CPU(uc, mycpu)->env.xregs[30];
-                         break;
+                    *(int64_t *)value = ARM_CPU(uc, mycpu)->env.xregs[30];
+                    break;
                 case UC_ARM64_REG_PC:
-                         *(uint64_t *)value = ARM_CPU(uc, mycpu)->env.pc;
-                         break;
+                    *(uint64_t *)value = ARM_CPU(uc, mycpu)->env.pc;
+                    break;
                 case UC_ARM64_REG_SP:
-                         *(int64_t *)value = ARM_CPU(uc, mycpu)->env.xregs[31];
-                         break;
+                    *(int64_t *)value = ARM_CPU(uc, mycpu)->env.xregs[31];
+                    break;
+                case UC_ARM64_REG_NZCV:
+                    *(int32_t *)value = cpsr_read(&ARM_CPU(uc, mycpu)->env) & CPSR_NZCV;
+                    break;
             }
         }
     }
@@ -124,21 +141,36 @@ int arm64_reg_write(struct uc_struct *uc, unsigned int *regs, void* const* vals,
         } else {
             switch(regid) {
                 default: break;
+                case UC_ARM64_REG_CPACR_EL1:
+                    ARM_CPU(uc, mycpu)->env.cp15.c1_coproc = *(uint32_t *)value;
+                    break;
+                case UC_ARM64_REG_TPIDR_EL0:
+                    ARM_CPU(uc, mycpu)->env.cp15.tpidr_el0 = *(uint64_t *)value;
+                    break;
+                case UC_ARM64_REG_TPIDRRO_EL0:
+                    ARM_CPU(uc, mycpu)->env.cp15.tpidrro_el0 = *(uint64_t *)value;
+                    break;
+                case UC_ARM64_REG_TPIDR_EL1:
+                    ARM_CPU(uc, mycpu)->env.cp15.tpidr_el1 = *(uint64_t *)value;
+                    break;
                 case UC_ARM64_REG_X29:
-                         ARM_CPU(uc, mycpu)->env.xregs[29] = *(uint64_t *)value;
-                         break;
+                    ARM_CPU(uc, mycpu)->env.xregs[29] = *(uint64_t *)value;
+                    break;
                 case UC_ARM64_REG_X30:
-                         ARM_CPU(uc, mycpu)->env.xregs[30] = *(uint64_t *)value;
-                         break;
+                    ARM_CPU(uc, mycpu)->env.xregs[30] = *(uint64_t *)value;
+                    break;
                 case UC_ARM64_REG_PC:
-                         ARM_CPU(uc, mycpu)->env.pc = *(uint64_t *)value;
-                         // force to quit execution and flush TB
-                         uc->quit_request = true;
-                         uc_emu_stop(uc);
-                         break;
+                    ARM_CPU(uc, mycpu)->env.pc = *(uint64_t *)value;
+                    // force to quit execution and flush TB
+                    uc->quit_request = true;
+                    uc_emu_stop(uc);
+                    break;
                 case UC_ARM64_REG_SP:
-                         ARM_CPU(uc, mycpu)->env.xregs[31] = *(uint64_t *)value;
-                         break;
+                    ARM_CPU(uc, mycpu)->env.xregs[31] = *(uint64_t *)value;
+                    break;
+                case UC_ARM64_REG_NZCV:
+                    cpsr_write(&ARM_CPU(uc, mycpu)->env, *(uint32_t *) value, CPSR_NZCV);
+                    break;
             }
         }
     }
@@ -146,8 +178,12 @@ int arm64_reg_write(struct uc_struct *uc, unsigned int *regs, void* const* vals,
     return 0;
 }
 
-__attribute__ ((visibility ("default")))
+DEFAULT_VISIBILITY
+#ifdef TARGET_WORDS_BIGENDIAN
+void arm64eb_uc_init(struct uc_struct* uc)
+#else
 void arm64_uc_init(struct uc_struct* uc)
+#endif
 {
     register_accel_types(uc);
     arm_cpu_register_types(uc);
